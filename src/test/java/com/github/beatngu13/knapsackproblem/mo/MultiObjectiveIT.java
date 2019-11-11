@@ -10,6 +10,7 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 import com.github.beatngu13.knapsackproblem.base.Knapsack;
+import com.github.beatngu13.knapsackproblem.mo.ga.CustomSinglePointCrossover;
 import com.github.beatngu13.knapsackproblem.mo.ga.ItemGene;
 import com.github.beatngu13.knapsackproblem.mo.ga.KnapsackChromosome;
 import com.github.beatngu13.knapsackproblem.mo.ga.KnapsackCodec;
@@ -56,6 +57,28 @@ class MultiObjectiveIT {
 		final var bestKnapsack1 = getKnapsack(optimalSolution, 1);
 		assertThat(bestKnapsack0).isEqualTo(MultiObjectiveProblem.OPTIMAL_KNAPSACK_0);
 		assertThat(bestKnapsack1).isEqualTo(MultiObjectiveProblem.OPTIMAL_KNAPSACK_1);
+		System.out.println(stats);
+	}
+
+	@Test
+	void printing_individuals_for_recombination_to_console() throws Exception {
+		final Engine<ItemGene, Vec<int[]>> knapsackEngine = Engine.builder(new ProfitFitness(), new KnapsackCodec()) //
+				.executor(Runnable::run) // Single-threaded for reproducibility.
+				.populationSize(2) //
+				.offspringFraction(1.0) //
+				.selector(NSGA2Selector.ofVec()) //
+				.alterers(new CustomSinglePointCrossover<>(1.0)) //
+				.constraint(new WeightAndItemsConstraint()) //
+				.build();
+
+		final EvolutionStatistics<Vec<int[]>, ?> stats = EvolutionStatistics.ofComparable();
+
+		RandomRegistry.with(new Random(0L), // Fixed seed for reproducibility.
+				rand -> knapsackEngine.stream() //
+						.limit(Limits.byFixedGeneration(1)) //
+						.peek(stats) //
+						.collect(MOEA.toParetoSet(IntRange.of(1, 50))));
+
 		System.out.println(stats);
 	}
 
